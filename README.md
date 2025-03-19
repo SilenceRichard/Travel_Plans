@@ -5,8 +5,8 @@ A repository for storing travel plans and flight information.
 ## Contents
 
 - Flight information between Beijing and Shanghai
-  - March 30, 2025
-  - March 31, 2025
+  - [March 30, 2025](./flights/flights-pek-pvg-2025-03-30.html)
+  - [March 31, 2025](./flights/flights-pek-pvg-2025-03-31.html)
 
 ## About
 
