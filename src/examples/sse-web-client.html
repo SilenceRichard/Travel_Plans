@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>交通信息助手 - Web客户端</title>
+  <style>
+    body {
+      font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      color: #1a53ff;
+      text-align: center;
+    }
+    .card {
+      border: 1px solid #e6e6e6;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .field-row {
+      display: flex;
+      gap: 12px;
+    }
+    .field-row .field {
+      flex: 1;
+    }
+    label {
+      font-weight: bold;
+    }
+    input, select, button {
+      padding: 8px 12px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    button {
+      background-color: #1a53ff;
+      color: white;
+      cursor: pointer;
+      border: none;
+      font-weight: bold;
+      transition: background-color 0.2s;
+    }
+    button:hover {
+      background-color: #0033cc;
+    }
+    .result {
+      white-space: pre-wrap;
+      background-color: #f7f7f7;
+      padding: 16px;
+      border-radius: 4px;
+      margin-top: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .connections-status {
+      text-align: center;
+      margin-bottom: 10px;
+      color: #666;
+    }
+    .status-circle {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+      background-color: #f44336;
+    }
+    .status-circle.connected {
+      background-color: #4caf50;
+    }
+    .checkbox-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .checkbox-field input {
+      width: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>交通信息助手</h1>
+  
+  <div class="connections-status">
+    <span class="status-circle" id="connection-status"></span>
+    <span id="connection-text">未连接</span>
+  </div>
+  
+  <div class="card">
+    <h2>服务器设置</h2>
+    <div class="controls">
+      <div class="field-row">
+        <div class="field">
+          <label for="server-url">服务器地址</label>
+          <input type="text" id="server-url" value="http://localhost:3000" />
+        </div>
+        <div class="field">
+          <label for="auth-token">认证令牌 (可选)</label>
+          <input type="text" id="auth-token" placeholder="可选授权令牌" />
+        </div>
+      </div>
+      <div class="checkbox-field">
+        <input type="checkbox" id="direct-mode" checked />
+        <label for="direct-mode">直接模式 (无需SSE连接)</label>
+      </div>
+      <button id="connect-btn">连接服务器</button>
+    </div>
+  </div>
+  
+  <div class="card">
+    <h2>航班查询</h2>
+    <div class="controls">
+      <div class="field-row">
+        <div class="field">
+          <label for="flight-from">出发城市</label>
+          <input type="text" id="flight-from" placeholder="如：北京或PEK" value="北京" />
+        </div>
+        <div class="field">
+          <label for="flight-to">目的城市</label>
+          <input type="text" id="flight-to" placeholder="如：上海或SHA" value="上海" />
+        </div>
+        <div class="field">
+          <label for="flight-date">出行日期</label>
+          <input type="date" id="flight-date" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="checkbox-field">
+          <input type="checkbox" id="flight-headless" checked />
+          <label for="flight-headless">无头模式</label>
+        </div>
+        <div class="checkbox-field">
+          <input type="checkbox" id="flight-screenshot" checked />
+          <label for="flight-screenshot">保存截图</label>
+        </div>
+        <div class="checkbox-field">
+          <input type="checkbox" id="flight-verbose" checked />
+          <label for="flight-verbose">详细日志</label>
+        </div>
+      </div>
+      <button id="get-flights-btn">查询航班</button>
+      <div class="result" id="flight-result"></div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <h2>火车查询</h2>
+    <div class="controls">
+      <div class="field-row">
+        <div class="field">
+          <label for="train-from">出发城市</label>
+          <input type="text" id="train-from" placeholder="如：北京" value="北京" />
+        </div>
+        <div class="field">
+          <label for="train-to">目的城市</label>
+          <input type="text" id="train-to" placeholder="如：上海" value="上海" />
+        </div>
+        <div class="field">
+          <label for="train-date">出行日期</label>
+          <input type="date" id="train-date" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="checkbox-field">
+          <input type="checkbox" id="train-headless" checked />
+          <label for="train-headless">无头模式</label>
+        </div>
+        <div class="checkbox-field">
+          <input type="checkbox" id="train-screenshot" checked />
+          <label for="train-screenshot">保存截图</label>
+        </div>
+        <div class="checkbox-field">
+          <input type="checkbox" id="train-verbose" checked />
+          <label for="train-verbose">详细日志</label>
+        </div>
+      </div>
+      <button id="get-trains-btn">查询火车</button>
+      <div class="result" id="train-result"></div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <h2>机场代码查询</h2>
+    <div class="controls">
+      <div class="field">
+        <label for="city-name">城市名称</label>
+        <input type="text" id="city-name" placeholder="如：成都" />
+      </div>
+      <button id="lookup-code-btn">查询机场代码</button>
+      <div class="result" id="airport-result"></div>
+    </div>
+  </div>
+  
+  <script>
+    // 初始化日期为当前日期
+    document.addEventListener('DOMContentLoaded', () => {
+      const today = new Date();
+      const dateString = today.toISOString().split('T')[0];
+      document.getElementById('flight-date').value = dateString;
+      document.getElementById('train-date').value = dateString;
+    });
+    
+    // 全局变量
+    let eventSource = null;
+    
+    // 连接到服务器
+    document.getElementById('connect-btn').addEventListener('click', () => {
+      const serverUrl = document.getElementById('server-url').value.trim();
+      const authToken = document.getElementById('auth-token').value.trim();
+      const directMode = document.getElementById('direct-mode').checked;
+      
+      // 关闭已有连接
+      if (eventSource) {
+        eventSource.close();
+        setConnectionStatus(false);
+      }
+      
+      if (directMode) {
+        // 直接模式不需要建立SSE连接
+        console.log('使用直接模式，无需SSE连接');
+        setConnectionStatus(true, '直接模式');
+        return;
+      }
+      
+      // 创建连接
+      const sseUrl = `${serverUrl}/sse`;
+      console.log(`连接到 SSE 端点: ${sseUrl}`);
+      
+      // 创建请求选项
+      const eventSourceInit = {};
+      if (authToken) {
+        eventSourceInit.headers = {
+          'Authorization': `Bearer ${authToken}`
+        };
+      }
+      
+      try {
+        // 建立SSE连接
+        eventSource = new EventSource(sseUrl, eventSourceInit);
+        
+        // 添加事件处理程序
+        eventSource.onopen = () => {
+          console.log('SSE连接已建立');
+          setConnectionStatus(true);
+        };
+        
+        eventSource.onmessage = (event) => {
+          console.log('收到消息:', event.data);
+          try {
+            const data = JSON.parse(event.data);
+            if (data.id) {
+              // 处理收到的消息
+              processResponse(data);
+            }
+          } catch (err) {
+            console.log('收到非JSON消息:', event.data);
+          }
+        };
+        
+        eventSource.onerror = (error) => {
+          console.error('SSE连接错误:', error);
+          setConnectionStatus(false);
+        };
+      } catch (err) {
+        console.error('创建SSE连接失败:', err);
+        setConnectionStatus(false);
+      }
+    });
+    
+    // 设置连接状态显示
+    function setConnectionStatus(connected, mode) {
+      const statusCircle = document.getElementById('connection-status');
+      const statusText = document.getElementById('connection-text');
+      
+      if (connected) {
+        statusCircle.classList.add('connected');
+        statusText.innerText = mode ? `已连接 (${mode})` : '已连接';
+      } else {
+        statusCircle.classList.remove('connected');
+        statusText.innerText = '未连接';
+      }
+    }
+    
+    // 生成唯一ID
+    function generateId() {
+      return `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    }
+    
+    // 发送MCP请求
+    async function sendRequest(tool, parameters, resultElement) {
+      const serverUrl = document.getElementById('server-url').value.trim();
+      const authToken = document.getElementById('auth-token').value.trim();
+      const directMode = document.getElementById('direct-mode').checked;
+      
+      // 创建请求头
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      
+      // 生成唯一ID
+      const messageId = generateId();
+      
+      // 创建请求
+      const request = {
+        id: messageId,
+        method: 'mcp.toolCall',
+        params: {
+          tool,
+          parameters
+        }
+      };
+      
+      // 显示正在加载
+      resultElement.innerText = '正在处理请求，请稍候...';
+      
+      if (directMode) {
+        // 直接模式：通过HTTP请求发送
+        try {
+          const response = await fetch(`${serverUrl}/messages`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(request)
+          });
+          
+          const result = await response.json();
+          
+          if (result.error) {
+            resultElement.innerText = `错误: ${JSON.stringify(result.error, null, 2)}`;
+            return;
+          }
+          
+          handleToolResult(result.result, resultElement);
+        } catch (error) {
+          resultElement.innerText = `发送请求失败: ${error.message}`;
+        }
+      } else {
+        // SSE模式：等待服务器的异步响应
+        if (!eventSource || eventSource.readyState !== EventSource.OPEN) {
+          resultElement.innerText = '错误: 未连接到服务器，请先连接服务器或启用直接模式';
+          return;
+        }
+        
+        try {
+          // 发送请求
+          const response = await fetch(`${serverUrl}/messages`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(request)
+          });
+          
+          if (!response.ok) {
+            resultElement.innerText = `服务器错误: ${response.status} ${response.statusText}`;
+          }
+        } catch (error) {
+          resultElement.innerText = `发送请求失败: ${error.message}`;
+        }
+      }
+    }
+    
+    // 处理SSE响应
+    function processResponse(data) {
+      // 根据响应类型处理不同的结果
+      // 查找对应的结果显示区域
+      if (data.result && data.result.content) {
+        // 这是一个工具调用结果
+        handleToolResult(data.result, getResultElementById(data.id));
+      }
+    }
+    
+    // 根据消息ID获取对应的结果显示元素
+    function getResultElementById(id) {
+      // 在实际应用中，可能需要更复杂的映射。这里简单处理
+      return document.getElementById('flight-result') || 
+             document.getElementById('train-result') || 
+             document.getElementById('airport-result');
+    }
+    
+    // 处理工具结果
+    function handleToolResult(result, resultElement) {
+      if (!resultElement) return;
+      
+      if (result.content && result.content.length > 0) {
+        // 提取文本内容
+        const textContent = result.content
+          .filter(item => item.type === 'text')
+          .map(item => item.text)
+          .join('\n');
+        
+        if (textContent) {
+          resultElement.innerText = textContent;
+        } else {
+          resultElement.innerText = JSON.stringify(result, null, 2);
+        }
+      } else {
+        resultElement.innerText = '未收到有效内容';
+      }
+    }
+    
+    // 查询航班信息
+    document.getElementById('get-flights-btn').addEventListener('click', () => {
+      const from = document.getElementById('flight-from').value.trim();
+      const to = document.getElementById('flight-to').value.trim();
+      const date = document.getElementById('flight-date').value;
+      const headless = document.getElementById('flight-headless').checked;
+      const saveScreenshot = document.getElementById('flight-screenshot').checked;
+      const verbose = document.getElementById('flight-verbose').checked;
+      
+      const parameters = {
+        from,
+        to,
+        date,
+        headless,
+        saveScreenshot,
+        verbose
+      };
+      
+      sendRequest('get_flight_info', parameters, document.getElementById('flight-result'));
+    });
+    
+    // 查询火车信息
+    document.getElementById('get-trains-btn').addEventListener('click', () => {
+      const from = document.getElementById('train-from').value.trim();
+      const to = document.getElementById('train-to').value.trim();
+      const date = document.getElementById('train-date').value;
+      const headless = document.getElementById('train-headless').checked;
+      const saveScreenshot = document.getElementById('train-screenshot').checked;
+      const verbose = document.getElementById('train-verbose').checked;
+      
+      const parameters = {
+        from,
+        to,
+        date,
+        headless,
+        saveScreenshot,
+        verbose
+      };
+      
+      sendRequest('get_train_info', parameters, document.getElementById('train-result'));
+    });
+    
+    // 查询机场代码
+    document.getElementById('lookup-code-btn').addEventListener('click', () => {
+      const city = document.getElementById('city-name').value.trim();
+      
+      if (!city) {
+        document.getElementById('airport-result').innerText = '请输入城市名称';
+        return;
+      }
+      
+      const parameters = { city };
+      
+      sendRequest('lookup_airport_code', parameters, document.getElementById('airport-result'));
+    });
+    
+    // 自动设置直接模式
+    document.getElementById('direct-mode').checked = true;
+    setConnectionStatus(true, '直接模式');
+  </script>
+</body>
+</html>
