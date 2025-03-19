@@ -1,0 +1,33 @@
+{
+  "name": "travel-info-assistant",
+  "version": "1.0.0",
+  "description": "Transportation information assistant with MCP support",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "start:sse": "node src/sse-server.js",
+    "start:sse:auth": "node src/sse-server.js --token=test_token",
+    "example": "node src/examples/sse-client-example.js",
+    "curl-example": "src/examples/curl-example.sh",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "travel",
+    "flights",
+    "trains",
+    "mcp",
+    "sse"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "node-fetch": "^3.3.2",
+    "playwright": "^1.40.0",
+    "uuid": "^9.0.1",
+    "zod": "^3.22.4"
+  }
+}
